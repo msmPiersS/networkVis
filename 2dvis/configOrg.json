@@ -1,0 +1,53 @@
+{
+  "type": "network",
+  "version": "1.0",
+  "data": "data.json",
+  "logo": {
+    "text": "lornab",
+    "file": "",
+    "link": ""
+  },
+  "text": {
+    "title": "Interactive Visualisation of UK BzzAgent Network",
+    "more": "Relationship between Bzz agents using their twitter connections with a directed edge from A to B if at least 50% of the followers of A are also followers of B; <br> Click on a node (BzzAgent) to see connections or search for a specific node using the search box on the left; <br> Zoom in and out using the zoom buttons below.",
+    "intro": "This visualisation displays the layout of the UK Bzz Agent network, and the relationship of different Bzz agents to each other, based on their shared twitter connections."
+  },
+  "legend": {
+    "edgeLabel": "At least 50% overlap of followers",
+    "colorLabel": "Community",
+    "nodeLabel": "Bzz agents"
+  },
+  "features": {
+    "search": true,
+    "groupSelectorAttribute": false,
+    "hoverBehavior": "default"
+  },
+  "informationPanel": {
+    "imageAttribute": false,
+    "groupByEdgeDirection": false
+  },
+  "sigma": {
+    "graphProperties": {
+      "minEdgeSize": 0.2,
+      "maxNodeSize": 7,
+      "maxEdgeSize": 0.5,
+      "minNodeSize": 1
+    },
+    "drawingProperties": {
+      "labelThreshold": 10,
+      "hoverFontStyle": "bold",
+      "defaultEdgeType": "curve",
+      "defaultLabelColor": "#000",
+      "defaultLabelHoverColor": "#fff",
+      "defaultLabelSize": 14,
+      "activeFontStyle": "bold",
+      "fontStyle": "bold",
+      "defaultHoverLabelBGColor": "#002147",
+      "defaultLabelBGColor": "#ddd"
+    },
+    "mouseProperties": {
+      "minRatio": 0.75,
+      "maxRatio": 20
+    }
+  }
+}
