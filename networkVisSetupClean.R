@@ -6,7 +6,7 @@
 ## 2) Cleans up and calculates node positions (using igraph) based on different algorithms- visualsies locally in ggplot
 ## 3) Exports json files for use in sigmajs based interactive vis
 ##
-## Feb 2018 - ps
+## March 2018 - ps
 #######################################################################################
 
 
@@ -26,20 +26,15 @@
   nodesInputFile = 'Mapping_List.txt'
   edgesInputFile = 'Mapping_Square.txt'
   
-  #set preferences
-  #clearUpperTriangle = TRUE ## set to TRUE to clear the upper triangle of the square matrix, set to FALSE to add upper triangle to lower triangle
-  
   #libraries
   library(data.table) #for efficient manipulation of data
-  #library(bit64)
   library(fpc) #to generate density based clusters
   library(igraph) #to generate the graph layouts
   library(ggplot2)  #to plot hte layours
   library(plyr) # for data manipulation
   library(jsonlite) #to create json export
-  library(RColorBrewer) #for colour generation
-  #library(Rtsne)
-
+  #library(RColorBrewer) #for colour generation
+  
 ## End Set up
 #######################################################################################
 
@@ -52,9 +47,6 @@
   #load raw files
   rawNodes = fread(paste(dataDir, nodesInputFile, sep=""))
   rawEdges = fread(paste(dataDir, edgesInputFile, sep=""))
-  
-  #rawNodesOrg = copy(rawNodes)
-  #rawEdgesOrg = copy(rawEdges)
   
   #check edges file for text in column 1
   edgeLabels = ""
@@ -83,30 +75,16 @@
   rawEdges[rawEdges<1e-6] = 0 #clean up any tiny values
   
   #quick look at distribution of scores
-  hist(rawEdges)
-  summary(rawEdges)
-  sum(rawEdges>0.01)
-  sum(rawEdges>0.05)
-  sum(rawEdges>0.1)
+  exploreDistFlag = 0
+  if (exploreDistFlag==1) {
+    hist(rawEdges)
+    summary(rawEdges)
+    sum(rawEdges>0.01)
+    sum(rawEdges>0.05)
+    sum(rawEdges>0.1)
+  }
   
-  
-#   # going to make an "undirected" graph- in other words doesnt matter order
-#   # check edges- if non-empty upper triangle, offer to merge (add) to lower triangle or disregard
-#   nonZeroUpperFlag = (sum(rawEdges*upper.tri(rawEdges),na.rm = TRUE)>0)
-#   if (nonZeroUpperFlag) {
-#     # if we have values in the upper triangle of the edges matrix we have to choose either to remove them or to add them to the lower triangle
-#     if (clearUpperTriangle) {
-#       # if preference is to clear the upper triangle, do so
-#       edges = as.matrix(rawEdges*lower.tri(rawEdges))
-#     } else {
-#       # otherwise add upper to lower and then clear upper
-#       edges = as.matrix(rawEdges*lower.tri(rawEdges) + t(rawEdges*upper.tri(rawEdges)))
-#     }
-#     
-#   } else {
-#     edges = as.matrix(rawEdges)
-#   }
-  
+
   # assume that node names are in column 1 of nodes input file and relative size is in column 2
   nodes = copy(rawNodes)
   edges = copy(rawEdges)
@@ -144,9 +122,6 @@
   # in  this instance we are going to use a "directed" which means the connection between A and B
   # can be different to the connection between B and A
   g = graph.adjacency(edgesIn, mode="directed", weighted="strength", diag=FALSE)
-  
-  #str(g)
-  #get.data.frame(g, what="edges")
   
   # initiate initial location of the nodes- to ensure repeatability
   set.seed(1234)
@@ -186,24 +161,26 @@
   #nodesDT[nodesDT[,Yorg]!=nodesDT[,Y],]
   
   #clustering using dbscan
-  #stds = apply(nodesDT[, list(X, Y)], 2, sd)
+  # may need to play around with the inputs to get a good result
+  # the first variable after the data is the range in which the algorithm 
+  # looks for nodes to cluster togeter, the smaller the figure, the more the clusters
+  # the second variable is the minimum number of points allowed in a cluster
   ds <- dbscan(nodesDT[, list(X, Y)], mean(stds)/5, MinPts = max(2,floor(nrow(nodesDT)/500)))
-  #ds <- dbscan(nodesDT[, list(Xorg, Yorg)], mean(stds)/10, MinPts = floor(nrow(nodesDT)/20))
-  #dbscan(nodesDT[, list(X, Y)], eps=5, MinPts = 5)
   
   useClusters = 1
+  # if you dont want to use clusters you can simply group them based on size
   if (useClusters != 1) {
     nodesDT[, typeId:=floor(log(1+max(relativeSize))) - floor(log(1+relativeSize))]
     
   } else {
     nodesDT[, typeId:=ds$cluster+1] #make sure cluster ids are greater than zero
-    
   }
 
-  #colourPalette = colorRampPalette(c("blue", "red"))(max(nodesDT[,typeId]))
+  #create list of colours
   colourPalette = rainbow(max(nodesDT[,typeId]), s = 0.6, v = 0.75)
   nodesDT[, colourId:=colourPalette[typeId]]
   
+  # pull edges and set to and from coordinates based on node positions
   edgesDT = as.data.table(get.data.frame(g, what="edges"))
   setkey(edgesDT, from)
   setkey(nodesDT, name)
@@ -213,26 +190,7 @@
   edgesDT = nodesDT[edgesDT][, list(to = name, from, strength, X1, Y1, X2=X, Y2=Y)]
   setkey(edgesDT, from)
   
-  #pull in node ids names
-  #setkey(edgesDT, toName)    
-  #edgesDT[, to:=nodesDT[edgesDT, id]]
-  #setkey(edgesDT, fromName)
-  #edgesDT[, from:=networkDT[edgesDT, id]]
-  #tsneIn = copy(edgesIn)
-  #diag(tsneIn) = apply(tsneIn,1,max)
-  #tsneOut <- Rtsne(tsneIn, perplexity = 1) # Run TSNE    
-  #tsneDT = copy(nodesDT)
-  #tsneDT[, c("X", "Y") := data.table(tsneOut$Y)]
-  
-  #replace any NAs with means
-  #means = colMeans(tsneDT[, list(X, Y)], na.rm = TRUE)
-  #tsneDT[is.na(X), X:=means[1]]
-  #tsneDT[is.na(Y), Y:=means[2]]
-  
-  
-  #nodesDTNet = nodesDT
-  #nodesDT = tsneDT
-  
+  # different options for how to scale the nodes- use log scale or not
   defaultSize = 10
   useLog = 0
   if (useLog==1) {
@@ -241,9 +199,7 @@
     nodesDT[, relativeSize:=defaultSize*(1+nodesDT[, relativeSizeOrg])/(1+max(nodesDT[, relativeSizeOrg]))]
   }
   
-  
-
-  
+  #plot locally using ggplot
   localPlot = 0
   
   if (localPlot == 1) {
@@ -297,26 +253,14 @@
   nodesExport = copy(nodesDT[, list(id = name, label = name, size = relativeSize, typeId, x = X, y = Y, color = colourId)])
   #setnames(nodesExport, c("name", "X", "Y"), c("label", "x", "y"))
   
-  #tmpcolList = brewer.pal(9,"Set1")
-  
+  # turn colours into rgb for javascript
   for (i in 1:nrow(nodesExport)) {
     #i=1
     nodesExport[i, color:=paste("rgb(",paste(col2rgb(color), collapse=","),")", sep="")]
   }
   
-  
-  #tmpcol = data.table(typeId = sort(unique(nodesExport[, typeId])), color =  tmpcolList[1:length(unique(nodesExport[, typeId]))])
-  #for (i in 1:nrow(tmpcol)) {
-  #  #i=1
-  #  tmpcol[i, color:=paste("rgb(",paste(col2rgb(tmpcol[i, color]), collapse=","),")", sep="")]
-  #}
-  
-  #setkey(nodesExport, typeId)  
-  ##setkey(tmpcol, typeId)
-  #nodesExport = nodesExport[tmpcol]
-  setkey(nodesExport, id)
-  # round everything
-  #nodesExport[, size := round(log(1+size)*1000)/1000]
+  setkey(nodesExport, id) #make sure ordered by id
+  #round everything
   nodesExport[, size := round(size*1000)/1000]
   nodesExport[, x := round(x*1000)/1000]
   nodesExport[, y := round(y*1000)/1000]
@@ -336,6 +280,9 @@
   
   
   ## config file for javascript vis
+  # note can play with node size and permanent lables using
+  # maxNodeSize and labelThreshold
+  
   configText = '
   {
   "type": "network",
@@ -415,13 +362,7 @@
   
   # set web server running - start local websever
   # python -m SimpleHTTPServer 8000
-  #system(paste("cd ", visDir, sep=""))
-  #system("python -m SimpleHTTPServer 8000")
-  
-  #note you then need to top from command line and find the python pid
-  # then sudo kill pid
-  
-  #then access at http://0.0.0.0:8000/
+  # then access at http://0.0.0.0:8000/ in browser
   
   
   

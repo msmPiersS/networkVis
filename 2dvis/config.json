@@ -30,15 +30,15 @@
   "sigma": {
   "graphProperties": {
   "minEdgeSize": 0.5,
-  "maxNodeSize": 20,
+  "maxNodeSize": 15,
   "maxEdgeSize": 3,
   "minNodeSize": 1
   },
   "drawingProperties": {
-  "labelThreshold": 20,
+  "labelThreshold": 10,
   "hoverFontStyle": "bold",
   "defaultEdgeType": "curve",
-  "defaultLabelColor": "#000",
+  "defaultLabelColor": "#fff",
   "defaultLabelHoverColor": "#fff",
   "defaultLabelSize": 14,
   "activeFontStyle": "bold",
